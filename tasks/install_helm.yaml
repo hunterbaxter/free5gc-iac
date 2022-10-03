@@ -1,0 +1,41 @@
+# This installs helm v2 for some reason?
+# - name: Install helm through simple script
+#   ansible.builtin.shell: curl -L https://git.io/get_helm.sh | bash
+#
+# - name: Initialize helm through simple script
+#   ansible.builtin.shell: /usr/local/bin/helm init
+
+- name: Install packaged needed for Helm
+  apt:
+    name: "{{ item }}"
+    state: latest
+    update_cache: yes
+  loop:
+    - apt-transport-https
+  become: true
+  tags: helm
+
+- name: Add apt key for Helm
+  apt_key:
+    url: https://baltocdn.com/helm/signing.asc
+    state: present
+    keyring: /usr/share/keyrings/helm.gpg
+  become: true
+  tags: helm
+
+# NOTE: need to make sure this is up to date and works with specific image
+- name: Add Helm repository to apt
+  apt_repository:
+    repo: "deb [arch=amd64 signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main kubernetes-xenial main"
+    state: present
+    filename: helm-stable-debian.list
+  become: true
+  tags: helm
+
+- name: Install packaged needed for K8s
+  apt:
+    name: helm
+    state: latest
+    update_cache: yes
+  become: true
+  tags: helm

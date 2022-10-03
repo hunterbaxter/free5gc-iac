@@ -1,0 +1,6 @@
+---
+# ansible-galaxy collection install ansible.posix
+- name: Install necessary ansible galaxy
+  shell: "ansible-galaxy collection install {{item}}"
+  loop: "{{ansible_requirements}}"
+...

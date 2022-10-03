@@ -1,0 +1,6 @@
+# https://kubernetes.io/docs/tasks/administer-cluster/dns-debugging-resolution/
+- name: Add DNS Utils pod to test DNS
+  ansible.builtin.shell: kubectl apply -f https://k8s.io/examples/admin/dns/dnsutils.yaml
+# Check local DNS configuration
+# kubectl exec -ti dnsutils -- cat /etc/resolv.conf
+# kubectl exec -i -t dnsutils -- nslookup kubernetes.default

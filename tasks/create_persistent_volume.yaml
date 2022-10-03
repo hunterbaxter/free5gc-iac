@@ -1,0 +1,41 @@
+# NOTE: /home/{{home_dir}}/kubedate must be a directory.
+# Earlier in the master playbook does this on all nodes,
+# but this creates a persistent volume on only one node
+# FIXME: Why does this not work correctly?
+# - name: Create a Persistent volume on first minion node
+#   kubernetes.core.k8s:
+#     state: present
+#     definition:
+#       apiVersion: v1
+#       kind: PersistentVolume
+#       metadata:
+#         name: pv0
+#         labels:
+#           project: free5gc
+#       spec:
+#         capacity:
+#           storage: 8Gi
+#         accessModes:
+#         - ReadWriteOnce
+#         persistentVolumeReclaimPolicy: Retain
+#         local:
+#           # WARNING: the home directory may not be cc
+#           path: /home/{{home_dir}}/kubedata
+#         nodeAffinity:
+#           required:
+#             nodeSelectorTerms:
+#             - matchExpressions:
+#               - key: kubernetes.io/hostname
+#                 operator: In
+#                 values:
+#                 - "{{k8_first_minion_name}}"
+- name: Copy persisent volume file onto remotwe
+  copy:
+    src: ../persistent_volume_5g.yaml
+    dest: "/home/{{home_dir}}/persistent_volume_5g.yaml"
+    mode: '0777'
+  tags: helm
+
+- name: Apply persistent volume with kubectl
+  shell: "kubectl apply -f /home/{{home_dir}}/persistent_volume_5g.yaml"
+  tags: helm

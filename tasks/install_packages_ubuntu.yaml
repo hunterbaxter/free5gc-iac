@@ -1,0 +1,13 @@
+- name: Update and upgrade apt
+  apt:
+    update_cache: true
+    upgrade: full
+  become: true
+
+- name: Install underlying packages needed for free5gc
+  apt:
+    name: "{{ item }}"
+    state: latest
+    update_cache: yes
+  loop: "{{packages}}"
+  become: true

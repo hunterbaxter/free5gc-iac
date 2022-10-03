@@ -1,0 +1,43 @@
+- name: Replace eth0 in free5gc/values.yaml
+  ansible.builtin.replace:
+    path: "/home/{{home_dir}}/towards5gs-helm/charts/free5gc/values.yaml"
+    regexp: "eth0"
+    replace: "{{network_interface}}"
+  tags: helm
+
+- name: Replace eth1 in free5gc/values.yaml
+  ansible.builtin.replace:
+    path: "/home/{{home_dir}}/towards5gs-helm/charts/free5gc/values.yaml"
+    regexp: "eth1"
+    replace: "{{network_interface}}"
+  tags: helm
+
+- name: Replace eth0 in ueransim/values.yaml
+  ansible.builtin.replace:
+    path: "/home/{{home_dir}}/towards5gs-helm/charts/ueransim/values.yaml"
+    regexp: "eth0"
+    replace: "{{network_interface}}"
+  tags: helm
+
+- name: Replace eth1 in ueransim/values.yaml
+  ansible.builtin.replace:
+    path: "/home/{{home_dir}}/towards5gs-helm/charts/ueransim/values.yaml"
+    regexp: "eth1"
+    replace: "{{network_interface}}"
+  tags: helm
+
+- name: Replace n6if ip in free5gs/charts/free5gc-upf/values.yaml with upf instance private ip
+  ansible.builtin.replace:
+    path: "/home/{{home_dir}}/towards5gs-helm/charts/free5gc/charts/free5gc-upf/values.yaml"
+    regexp: '  n6if:  # DN\n    ipAddress: \d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$'
+    replace: "  n6if:  # DN\n    ipAddress: {{k8_upf_private_ip}}"
+  tags: helm
+
+- name: Change gateway, subnet ip, and subnet mask in global.n6network
+  ansible.builtin.replace:
+    path: "/home/{{home_dir}}/towards5gs-helm/charts/free5gc/values.yaml"
+    regexp: '  n6network:\n    name: n6network\n    masterIf: {{network_interface}}\n    subnetIP: \d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\n    cidr: \d{1,2}\n    gatewayIP: \d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}'
+    replace: '  n6network:\n    name: n6network\n    masterIf: {{network_interface}}\n    subnetIP: {{cluster_subnet_ip}}\n    cidr: {{cluster_cidr}}\n    gatewayIP: {{cluster_gateway_ip}}'
+  tags: helm
+
+  # ansible_facts["default_ipv4"]["address"]

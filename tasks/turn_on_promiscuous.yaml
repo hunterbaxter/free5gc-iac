@@ -1,0 +1,9 @@
+- name: Install net-tools
+  apt:
+    name: net-tools
+    state: latest
+  become: true
+
+- name: Set network interface to promiscous
+  shell: "ifconfig {{network_interface}} promisc"
+  become: true

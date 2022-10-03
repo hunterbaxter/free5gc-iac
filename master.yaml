@@ -1,0 +1,169 @@
+- name: Set up local for Chameleon
+  hosts: localhost
+  vars_files:
+    - variables.yaml
+  tasks:
+    - name: Add K8 master to hosts
+      add_host:
+        ansible_ssh_private_key_file: "{{ssh_key_location}}"
+        ansible_user: "{{user}}"
+        hostname: "{{ k8_master_public_ip }}"
+        groups: "k8, k8_master"
+      tags: always
+
+    - name: Add K8 minions to hosts
+      add_host:
+        ansible_ssh_private_key_file: "{{ssh_key_location}}"
+        ansible_user: "cc"
+        hostname: "{{ item }}"
+        groups: "k8, k8_minions"
+      loop: "{{k8_minion_public_ips}}"
+      tags: always
+
+- name: Set up K8
+  hosts: k8
+  remote_user: root
+  vars_files:
+    - variables.yaml
+  tasks:
+    # only temporarily until reboot, needs to be persistent.
+    - include_tasks: ./tasks/turn_on_promiscuous.yaml
+    - name: Disable swap for current session
+      command: swapoff -a
+      become: true
+
+    - name: Disable swap permanently, persist reboots
+      replace:
+        path: /etc/fstab
+        regexp: '^(\s*)([^#\n]+\s+)(\w+\s+)swap(\s+.*)$'
+        replace: '#\1\2\3swap\4'
+        backup: yes
+
+    # shell: sudo systemctl stop ufw;
+    - name: Stop ufw
+      ansible.builtin.systemd:
+        state: stopped
+        name: ufw
+      become: true
+
+    - include_tasks: ./tasks/install_docker.yaml
+      tags: install, install_docker
+
+    - include_tasks: ./tasks/install_k8.yaml
+      tags: install, install_k8
+
+    - include_tasks: ./tasks/install_gtp.yaml
+      tags: install
+
+    # Is this resetting? Doesn't seem like it...
+    - include_tasks: ./tasks/reset_k8_info.yaml
+
+#     # WARNING: this is a potential cause of problems. For some reason, things work well if there is no config file (maybe the ubuntu default is bad).
+    - include_tasks: ./tasks/configure_containerd.yaml
+      tags: reset
+    - name: Create /home/cc/kubedata directory for persistent volumes
+      ansible.builtin.file:
+        path: "/home/{{home_dir}}/kubedata"
+        state: directory
+
+
+- name: K8 cluster creation master only tasks
+  hosts: k8_master
+  remote_user: root
+  vars_files:
+    - variables.yaml
+  tasks:
+    - include_tasks: ./tasks/initialize_k8_cluster.yaml
+      tags: start_cluster
+
+    - name: Sleep for 30 seconds for cluster to initialize
+      ansible.builtin.wait_for:
+        timeout: 30
+
+    - include_tasks: ./tasks/install_multus.yaml
+      tags: start_cluster
+
+    - include_tasks: ./tasks/add_debugging_pods.yaml
+
+- name: Join Minions to Cluster
+  hosts: k8_minions
+  remote_user: root
+  vars_files:
+    - variables.yaml
+  tasks:
+    - include_tasks: ./tasks/join_k8_cluster.yaml
+      tags: join_cluster
+
+- name: K8 master 5g core
+  hosts: k8_master
+  remote_user: root
+  vars_files:
+    - variables.yaml
+  tasks:
+    # NOTE: Almost every single ansible helm function DOES NOT WORK
+    - include_tasks: ./tasks/install_helm.yaml
+      tags: install
+
+    - name: Clone towards 5gs-helm
+      git:
+        repo: https://github.com/Orange-OpenSource/towards5gs-helm.git
+        dest: "/home/{{home_dir}}/towards5gs-helm"
+        clone: true
+        force: true
+      tags: helm
+
+    # For some reason name fails?
+    # - name: Add towards5gs chart repo
+    #   kubernetes.core.helm_repository:
+    #     name: towards5gs
+    #     repo_url: "https://raw.githubusercontent.com/Orange-OpenSource/towards5gs-helm/main/repo/"
+    #   tags: helm
+
+    - name: Add towards5gs chart repo
+      shell: helm repo add towards5gs 'https://raw.githubusercontent.com/Orange-OpenSource/towards5gs-helm/main/repo/'
+      tags: helm
+
+    - name: Update Helm repo
+      shell: helm repo update
+      tags: helm
+
+    - name: Configure towards5gs-helm networking
+      include_tasks: ./tasks/configure_5g_helm_networking.yaml
+      tags: helm
+
+    # For some reason, this does not work?
+    - name: Add persistent volume for mongodb
+      include_tasks: ./tasks/create_persistent_volume.yaml
+      tags: helm
+
+    # For some reason, this doesn't work?
+    # - name: Deploy free5gc with helm
+    #   kubernetes.core.helm:
+    #     release_name: v3.1.1
+    #     chart_version: 1.1.2
+    #     release_namespace: kube-system
+    #     chart_ref: /home/{{home_dir}}/towards5gs-helm/charts/free5gc
+    #   tags: helm
+
+    # helm -n kube-system install core /home/cc/towards5gs-helm/charts/free5gc
+    # - name: Deploy free5gc with helm with script
+    #   shell: "helm -n kube-system install core /home/{{home_dir}}/towards5gs-helm/charts/free5gc"
+    #   tags: helm
+
+    # - name: Sleep for 60 seconds for free5gc cluster to initialize
+    #   ansible.builtin.wait_for:
+    #     timeout: 30
+    #   tags: helm
+
+    # - name: Deploy ueransim with helm
+    #   kubernetes.core.helm:
+    #     name: test
+    #     release_name: 2.0.14
+    #     chart_ref: /home/{{home_dir}}/towards5gs-helm/charts/ueransim
+    #     release_namespace: kube-system
+    #   tags: helm
+
+    # helm -n kube-system install ran /home/cc/towards5gs-helm/charts/ueransim
+    # - name: Deploy ueransim with helm with script
+    #   shell: "helm -n kube-system install ran /home/{{home_dir}}/towards5gs-helm/charts/ueransim"
+    #   tags: helm
