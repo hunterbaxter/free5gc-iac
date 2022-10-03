@@ -1,3 +1,9 @@
+# Repository Summary
+This repository contains Infrastructure as Code (IaC) for deploying a free5gc mobile core onto Chameleon Cloud.
+Included is a native linux deployment, and a work in progress Kubernetes deployment.
+
+
+
 # Instructions
 ## Free5gc on VM
 (1) Change parameters in [variable file](./iac/variables.yaml) to match Chameleon Cloud VMs that were created.
