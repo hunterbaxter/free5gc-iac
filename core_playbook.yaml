@@ -27,28 +27,26 @@
       apt:
         name: "{{ item }}"
         state: latest
-        update_cache: yes
+        update_cache: true
       loop: "{{core_packages}}"
       become: true
       tags: install
 
     - include_tasks: ./tasks/install_mongodb.yaml
 
-    # - name: Start Mongodb
-    #   ansible.builtin.systemd:
-    #     state: started
-    #     name: mongod
-
-    - include_tasks: ./tasks/install_rust.yaml
-      tags: install
+    - name: Start Mongodb
+      ansible.builtin.systemd:
+        state: started
+        name: mongod
 
     - include_tasks: ./tasks/install_go.yaml
       tags: install
 
+    # NOTE: this method is no longer functional in new version
     - include_tasks: ./tasks/install_node.yaml
       tags: install
 
-    # NOTE: this should work, but I need to check
+    # NOTE: new free5gc version requires extra
     - include_tasks: ./tasks/set_up_networking.yaml
 
     # NOTE: just clones directories due to Make issues, post ansible script required, see below

@@ -11,10 +11,12 @@
     table: nat
     action: "append"
     chain: "POSTROUTING"
-    # NOTE: could just do ens+ to match any number
     out_interface: "{{network_interface}}"
     jump: "MASQUERADE"
+    tcp_flags:
   become: true
+
+# NEW REQUIREMENT: sudo iptables -A FORWARD -p tcp -m tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 1400
 
 # shell: sudo systemctl stop ufw;
 - name: Stop ufw

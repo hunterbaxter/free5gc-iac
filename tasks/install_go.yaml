@@ -1,4 +1,4 @@
-# we are assuming that the go install was great and nothing went wrong...
+---
 - name: check if go exists
   stat:
     path: /usr/local/go/
@@ -63,6 +63,7 @@
 - name: source bashrc
   shell: ". /home/{{home_dir}}/.bashrc"
 
-- name: install go logrus
-  # shell: "go get -u github.com/sirupsen/logrus"
-  shell: "/usr/local/go/bin/go get -u github.com/sirupsen/logrus"
+# WARNING: It appears free5gc stopped supporting this
+# - name: install go logrus
+#   # shell: "go get -u github.com/sirupsen/logrus"
+#   shell: "/usr/local/go/bin/go get -u github.com/sirupsen/logrus"

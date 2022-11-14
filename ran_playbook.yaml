@@ -28,20 +28,14 @@
       apt:
         name: "{{ item }}"
         state: latest
-        update_cache: yes
+        update_cache: true
       loop: "{{ran_packages}}"
       become: true
       tags: install
 
-    - include_tasks: ./tasks/install_rust.yaml
-      tags: install
-
-
-    # WARN: overrides any changes in the repo,
     - include_tasks: ./tasks/build_ueransim.yaml
     - include_tasks: ./tasks/set_ueransim_params.yaml
       vars:
-        # WARN: this needs to be updated for the UE
         ue_internal_ip: "{{ue1_internal_ip}}"
         core_ip: "{{core_network_ips[0]}}"
 ...
